@@ -17,7 +17,7 @@ kind: ConfigMap
 metadata: {name: client-config, namespace: client}
 data:
   SERVER_ADDR: "api.e5.internal:8443"
-  CALL_INTERVAL: "0.2"              # seconds between calls: 5 rps
+  CALL_INTERVAL: "0.02"             # seconds between calls: 50 rps
 ---
 apiVersion: apps/v1
 kind: Deployment

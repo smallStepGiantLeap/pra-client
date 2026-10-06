@@ -1,0 +1,35 @@
+# Identifiers the reviewer follows every run. Join keys, the stack binding
+# with its verification checks, measurement queries, docs, answers.
+# Never endpoints, never credentials, never live state.
+service: client
+workloads:
+  - namespace: client
+    selector: app=client
+    container: client
+    clusters: [e5-client]
+    stack:
+      mesh:
+        is: "none: plaintext, no sidecar, no mesh request metrics"
+        verify: "no proxy container in the pod template; no mesh request metric family exists"
+      deploy:
+        is: "plain Deployment applied by the pipeline; no GitOps controller"
+        verify: "kube_replicaset_owner{namespace=\"client\"} reports owner_kind=\"Deployment\"; no GitOps metric family exists"
+      admission:
+        is: "pod security admission at enforce=restricted; no policy engine"
+        verify: "kube_namespace_labels{namespace=\"client\"} carries label_pod_security_kubernetes_io_enforce=\"restricted\""
+      enforcer:
+        is: "none: no NetworkPolicy objects and the default kind CNI, which does not enforce them"
+        verify: "kube_networkpolicy_spec_ingress_rules{namespace=\"client\"} returns no series"
+      autoscaler:
+        is: "none"
+        verify: "kube_horizontalpodautoscaler_info{namespace=\"client\"} returns no series"
+      metrics:
+        is: "prometheus-compatible backend with kube-state-metrics for both clusters and the appliance's envoy stats"
+        verify: "kube_pod_info{cluster=\"e5-client\"} and kube_pod_info{cluster=\"e5-server\"} both return series"
+    measure:
+      instances: count by (cluster) (kube_pod_info{namespace="client"} * on (namespace,pod) group_left kube_pod_status_ready{namespace="client",condition="true"})
+      desired: kube_deployment_spec_replicas{namespace="client"}
+      restarts: kube_pod_container_status_restarts_total{namespace="client"}
+      limits: kube_pod_container_resource_limits{namespace="client",container="client"}
+docs:
+  - README.md
